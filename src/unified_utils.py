@@ -86,6 +86,9 @@ def load_eval_data(args, data_name=None, model_name=None):
     elif data_name  == "commongen":
         dataset = load_dataset("allenai/commongen_lite", split="train") 
         metadata = {"id": [], "concept_set": []}
+    elif data_name == 'lima':
+        dataset = load_dataset('GAIR/lima', split='test')
+        metadata = {'conversations':[], 'source':[]}
     else:
         print("ERROR: data_name not supported")
      
@@ -103,6 +106,10 @@ def load_eval_data(args, data_name=None, model_name=None):
                                      item["turns"][1]]) 
             else:
                 raise ValueError("mt_turn should be 1 or 2")
+        elif data_name == 'lima':
+            in_text = item['conversations'][0]
+            id_strs.append(ind)
+            chat_history.append([in_text])
         for key in metadata: 
             metadata[key].append(item[key])
     print("start applying template")
@@ -151,6 +158,21 @@ def save_outputs(args, id_strs, outputs, chat_history, metadata, model_inputs, f
             output_item["model_id"] = args.model_name
             output_item["turn_id"] = args.mt_turn
             output_item["model_input"] = model_inputs[ind]
+            output_item["configs"] = {
+                "repetition_penalty": args.repetition_penalty,
+                "temperature": args.temperature,
+                "top_p": args.top_p,
+                "max_tokens": args.max_tokens,
+            }
+            formatted_outputs.append(output_item)
+    elif args.data_name == 'lima':
+        for ind in range(len(outputs)):
+            output_item = {}
+            output_item['id'] = ind
+            output_item["instruction"] = chat_history[ind][0]
+            output_item["output"] = clear_output(outputs[ind][0].rstrip(), args.model_name, args.urial)
+            output_item['model_input'] = model_inputs[ind]
+            output_item["generator"] = f"{args.model_name}-URIAL" if args.urial else args.model_name
             output_item["configs"] = {
                 "repetition_penalty": args.repetition_penalty,
                 "temperature": args.temperature,

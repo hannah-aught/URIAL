@@ -91,7 +91,9 @@ if __name__ == "__main__":
     
     # speical handling
     stop_words = []
-    include_stop_str_in_output = True  
+    include_stop_str_in_output = True
+
+    # HANNAH: Isn't this cheating abit?? Prevents model from generating "# Query and # User again"
     if args.urial is not None:
         stop_words = ["# Query", "# User"]
         include_stop_str_in_output = False
@@ -136,7 +138,7 @@ if __name__ == "__main__":
                 "no_repeat_ngram_size": args.no_repeat_ngram_size,
             }
             batch_outputs = llm.infer_generate(batch_inputs, args=sampling_params)
-            outputs.extend(batch_outputs) # TODO: enbale multiple generation 
+            outputs.extend(batch_outputs) # TODO: enbale multiple generation
             save_outputs(args, id_strs, outputs, chat_history, metadata, model_inputs, filepath)
         save_outputs(args, id_strs, outputs, chat_history, metadata, model_inputs, filepath)
         

@@ -21,11 +21,14 @@ class EndOfFunctionCriteria(StoppingCriteria):
 
     def __init__(self, start_length, eof_strings, tokenizer):
         self.start_length = start_length
-        self.eof_strings = eof_strings
+        self.eof_strings = eof_strings if '' not in eof_strings else None
         self.tokenizer = tokenizer
 
     def __call__(self, input_ids, scores, **kwargs):
         """Returns true if all generated sequences contain any of the end-of-function strings."""
+        if self.eof_strings is None:
+            return False
+
         decoded_generations = self.tokenizer.batch_decode(
             input_ids[:, self.start_length :]
         )
@@ -244,6 +247,7 @@ class DecoderOnlyModelManager(ModelManager):
             
             
         eof_strings = [s.strip() for s in args.eof_strings.split("|")]
+        eof_strings.append(self.tokenizer.eos_token)
         
         # Run Llama model inference to generate output
         if len(input_data) > 1:        
@@ -257,12 +261,15 @@ class DecoderOnlyModelManager(ModelManager):
             input_data = [in_text for _ in range(n) for in_text in input_data]
     
         inputs = self.tokenizer(input_data, return_tensors="pt", add_special_tokens=self.special_token_flags[0], padding=padding)
-        _, prefix_length = inputs["input_ids"].shape 
+        _, prefix_length = inputs["input_ids"].shape
          
         
         
         stopping_criteria = StoppingCriteriaList([EndOfFunctionCriteria(start_length=prefix_length, eof_strings=eof_strings, tokenizer=self.tokenizer)])
-        
+        # print(stopping_criteria)
+        # print(eof_strings)
+        # print(prefix_length)
+    
          
         low_memory = False 
         if args.penalty_alpha > 0:

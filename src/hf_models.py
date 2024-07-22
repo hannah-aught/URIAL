@@ -132,8 +132,8 @@ class DecoderOnlyModelManager(ModelManager):
         if "@" in self.model_path:
             model_path, revision = model_path.split("@")
         else:
-            revision = None         
-        self.tokenizer = AutoTokenizer.from_pretrained(model_path, revision=revision, trust_remote_code=True, cache_dir=self.cache_dir, padding_side="left")
+            revision = None
+        self.tokenizer = AutoTokenizer.from_pretrained(model_path, revision=revision, trust_remote_code=True, cache_dir=self.cache_dir, padding_side="left", token=os.getenv('HUGGINGFACE_TOKEN'))
         self.special_token_flags = [True, False]
 
         
@@ -144,7 +144,8 @@ class DecoderOnlyModelManager(ModelManager):
             # config.init_device = 'cuda:0' # For fast initialization directly on GPU!
             self.model = AutoModelForCausalLM.from_pretrained(model_path, revision=revision, trust_remote_code=True, device_map="auto", 
                                                             torch_dtype=torch.bfloat16, 
-                                                            cache_dir=self.cache_dir)
+                                                            cache_dir=self.cache_dir,
+                                                            token=os.getenv('HUGGINGFACE_TOKEN'))
             # .to(device_str)
         elif self.int8:
             device_map = {
@@ -160,7 +161,8 @@ class DecoderOnlyModelManager(ModelManager):
             self.model = AutoModelForCausalLM.from_pretrained(model_path, revision=revision, trust_remote_code=True, 
                                                               device_map=device_map, 
                                                               quantization_config=quantization_config, 
-                                                              cache_dir=self.cache_dir)            
+                                                              cache_dir=self.cache_dir,
+                                                              token=os.getenv('HUGGINGFACE_TOKEN'))            
         elif self.bnb4:
             bnb_config = BitsAndBytesConfig(
                 load_in_4bit=True,
@@ -169,15 +171,15 @@ class DecoderOnlyModelManager(ModelManager):
                 bnb_4bit_use_double_quant=True,
             )
             self.model = AutoModelForCausalLM.from_pretrained(model_path, revision=revision, trust_remote_code=True, device_map="auto", 
-                                                              quantization_config=bnb_config, cache_dir=self.cache_dir)
+                                                              quantization_config=bnb_config, cache_dir=self.cache_dir, token=os.getenv('HUGGINGFACE_TOKEN'))
         elif self.gptq:
             from auto_gptq import exllama_set_max_input_length
-            self.model = AutoModelForCausalLM.from_pretrained(model_path, revision="main", torch_dtype=torch.float16, device_map="auto", trust_remote_code=True, cache_dir=self.cache_dir)            
+            self.model = AutoModelForCausalLM.from_pretrained(model_path, revision="main", torch_dtype=torch.float16, device_map="auto", trust_remote_code=True, cache_dir=self.cache_dir, token=os.getenv('HUGGINGFACE_TOKEN'))   
             if "llama" in model_path.lower():
                 self.model = exllama_set_max_input_length(self.model, 4096)
         else: 
             torch_dtype = torch.float16 
-            self.model = AutoModelForCausalLM.from_pretrained(model_path, revision=revision, trust_remote_code=True, device_map="auto", cache_dir=self.cache_dir, torch_dtype=torch_dtype)
+            self.model = AutoModelForCausalLM.from_pretrained(model_path, revision=revision, trust_remote_code=True, device_map="auto", cache_dir=self.cache_dir, torch_dtype=torch_dtype, token=os.getenv('HUGGINGFACE_TOKEN'))
         
         print(f"(initial) self.tokenizer.pad_token_id={self.tokenizer.pad_token_id}")
         if self.tokenizer.pad_token_id is None:
